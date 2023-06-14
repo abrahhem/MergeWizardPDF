@@ -1,6 +1,15 @@
+.file-card {
+    display: flex;
+    width: 100%;
+    padding: 5px;
+    color: white;
+    align-items: center;
+    justify-content: space-between;
+}
 .file-name {
     flex: 0.7;
     overflow: hidden;
     margin: 0 !important;
+    cursor: pointer;
 }
 

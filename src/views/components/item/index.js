@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {Box, IconButton, Typography} from "@mui/material";
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DeleteIcon from '@mui/icons-material/Delete';
+import {useSortable} from "@dnd-kit/sortable";
 import './style.css'
 
 
@@ -12,10 +13,12 @@ export default function Item({ file, index, deleteHandler, openFileHandler, drag
     useEffect(() => {
         const name = file.name;
         setFileName(name);
-    }, []);
+        console.log(`${file.name} - ${index}`);
+    }, [file]);
 
 
     const handleItemDelete = () => {
+        console.log(`item - ${index}`);
         if ( deleteHandler )
             deleteHandler(index);
     }
@@ -37,7 +40,7 @@ export default function Item({ file, index, deleteHandler, openFileHandler, drag
             }}
             {...dragHandleProps}
         >
-            <DragIndicatorIcon />
+            <DragIndicatorIcon/>
             <Typography gutterBottom className={'file-name'} onClick={handleClick}>
                 {fileName}
             </Typography>

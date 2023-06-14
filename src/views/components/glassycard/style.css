@@ -1,7 +1,6 @@
 
 .glass {
     box-sizing: border-box;
-    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -9,7 +8,6 @@
     width: 70%;
     height: 90%;
     background: linear-gradient(126.6deg, rgba(255, 255, 255, 0.12) 28.69%, rgba(255, 255, 255, 0) 100%);
-    backdrop-filter: blur(48px);
     border-radius: 25px;
     border: 1px solid rgba(56, 84, 231, 0.2);
     margin: 20px;

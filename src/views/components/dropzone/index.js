@@ -3,6 +3,19 @@ import {useDropzone} from 'react-dropzone'
 import {Box} from "@mui/material";
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
+const style = {
+    color: 'white',
+    border: '2px dashed white',
+    padding: '30px',
+    textAlign: 'center',
+    borderRadius: '20px',
+    '&:hover' : {
+        opacity: 0.8,
+        cursor: "pointer"
+    }
+
+}
+
 export default function Dropzone({ handler }) {
     const onDrop = useCallback((acceptedFiles) => {
         acceptedFiles.forEach((file) => {
@@ -21,7 +34,7 @@ export default function Dropzone({ handler }) {
     });
 
     return (
-        <Box {...getRootProps()} sx={{color: 'white', border: '2px dashed white', padding: '30px', textAlign: 'center', borderRadius: '20px'}}>
+        <Box {...getRootProps()} sx={style}>
             <input {...getInputProps()} />
             <CloudUploadIcon sx={{fontSize: '80px'}}/>
             <h3>Drag 'n' drop some files here, or click to select files</h3>

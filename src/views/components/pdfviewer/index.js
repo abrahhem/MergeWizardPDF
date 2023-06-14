@@ -12,8 +12,8 @@ export default function PdfViewer({ document }) {
     const layoutPlugin = defaultLayoutPlugin();
 
     return(
-        <Box sx={{ width: "100%" }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%"}}>
+        <Box sx={{ width: "100%", height: "100%" }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "inherit"}}>
                 <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
                     <Viewer fileUrl={document} plugins={[layoutPlugin]}/>
                 </Worker>

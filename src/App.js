@@ -3,7 +3,6 @@ import './App.css';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom'
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import Main from "./views/main";
-import PdfViewer from "./views/components/pdfviewer";
 
 const theme = createTheme({
     palette: {
@@ -22,7 +21,6 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Main />}/>
-            <Route path="/pdf" element={<PdfViewer document={'document.pdf'} />}/>
             <Route path="*" element={<div>not found</div>}/>
           </Routes>
         </Router>
