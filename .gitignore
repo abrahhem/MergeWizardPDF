@@ -23,4 +23,5 @@ yarn-debug.log*
 yarn-error.log*
 
 # secrets
-/src/views/payload.js
+/src/views/config.js
+/.env

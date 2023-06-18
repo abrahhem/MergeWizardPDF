@@ -23,7 +23,7 @@ export default function Dropzone({ handler }) {
                 handler(file);
         });
 
-    }, []);
+    }, [handler]);
     const { getRootProps, getInputProps } = useDropzone({
         onDrop,
         maxFiles: 5,

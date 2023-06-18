@@ -1,4 +1,4 @@
-import React, {forwardRef, useState} from 'react';
+import React, {forwardRef, useEffect, useState} from 'react';
 import {
     Alert,
     Box,
@@ -6,11 +6,13 @@ import {
     CircularProgress,
     Dialog,
     DialogActions,
-    DialogContent, DialogContentText, DialogTitle, Paper,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     Slide,
     Snackbar
 } from "@mui/material";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {DragDropContext, Draggable, Droppable} from "react-beautiful-dnd";
 import GlassyCard from "../components/glassycard";
 import Dropzone from "../components/dropzone";
 import MergeIcon from '@mui/icons-material/Merge';
@@ -21,8 +23,7 @@ import PdfViewer from "../components/pdfviewer";
 import axios from "axios";
 import './style.css';
 import {green} from "@mui/material/colors";
-import {payload} from "../payload";
-
+import {configFormat} from "../config";
 
 
 const Transition = forwardRef(function Transition(props, ref) {
@@ -31,7 +32,7 @@ const Transition = forwardRef(function Transition(props, ref) {
 
 
 
-export default function Main() {
+export default function Main(blob) {
 
     const [errorDialog, setErrorDialog] = useState(false);
     const [errorStatus, setErrorStatus] = useState(null);
@@ -42,8 +43,9 @@ export default function Main() {
     const [errorMsg, setErrorMsg] = useState(null);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [download, setDownload] = useState(false);
+    const [downloaded, setDownloaded] = useState(false);
     const [mergedFile, setMergedFile] = useState(null);
+    const [tag, setTag] = useState(null);
 
     const buttonSx = {
         ...(success && {
@@ -53,6 +55,13 @@ export default function Main() {
             },
         }),
     };
+
+    const config = {...configFormat};
+
+    useEffect(() => {
+        generateTag();
+    }, []);
+
 
     const handleClickOpenErrorDialog = () => {
         setErrorDialog(true);
@@ -96,6 +105,19 @@ export default function Main() {
         }
     };
 
+    const generateTag = () => {
+        const length = 30; // desired length of the tag
+        const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let newTag = '';
+
+        for (let i = 0; i < length; i++) {
+            const randomIndex = Math.floor(Math.random() * charset.length);
+            newTag += charset[randomIndex];
+        }
+        console.log(newTag)
+        setTag(newTag);
+    };
+
 
     const handleFileUpload = (pdfFile) => {
         const fileReader = new FileReader();
@@ -107,21 +129,22 @@ export default function Main() {
                 if (prevPdfFiles.length >= 5) {
                     showAlert("You can't select more than 5 files");
                     return [...prevPdfFiles];
-                }
-                else if(prevPdfFiles.some((file) => file.document === dataUrl)) {
+                } else if (prevPdfFiles.some((file) => file.document === dataUrl)) {
                     showAlert("The file is already selected");
                     return [...prevPdfFiles];
-                }
-                else
-                    return [...prevPdfFiles, {
-                        name: pdfFile.name,
-                        document: dataUrl
-                    }];
+                } else
+                    return [
+                        ...prevPdfFiles,
+                        {
+                            name: pdfFile.name,
+                            type: pdfFile.type,
+                            document: dataUrl,
+                        },
+                    ];
             });
         };
         fileReader.readAsDataURL(pdfFile);
     };
-
 
 
     const handleFileDelete = (index) => {
@@ -133,14 +156,37 @@ export default function Main() {
         handleClickOpen();
     };
 
-    const handleButtonClick = () => {
 
-        if (download) {
-            setDownload(false);
-            setPdfFiles([]);
+    const uploadFiles = async () => {
+        config.headers.tag = `session_tag=${tag}`;
+        for (const pdfFile of pdfFiles) {
+            const index = pdfFiles.indexOf(pdfFile);
+            config.url = `https://ct4s9w7wu0.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}${index}.${pdfFile.type.split("/")[1]}`;
+            config.headers["Content-Type"] = `${pdfFile.type}`;
+            config.data = pdfFile.document;
+            console.log(config, pdfFile.type);
+            try {
+                const response = await axios.request(config);
+                console.log(response);
+                setSuccess(true);
+                setLoading(false);
+            } catch (error) {
+                setErrorMsg(error.message);
+                setErrorStatus(error.code);
+                setSuccess(false);
+                setLoading(false);
+                handleClickOpenErrorDialog();
+            }
         }
-        else if (success && !download) {
-            setDownload(true);
+    }
+
+    const handleButtonClick = async blob => {
+
+        if (downloaded) {
+            setDownloaded(false);
+            setPdfFiles([]);
+        } else if (success && !downloaded) {
+            setDownloaded(true);
             setSuccess(false);
             // Download the merged_file as a PDF file
             const link = document.createElement('a');
@@ -151,31 +197,39 @@ export default function Main() {
             console.log(link);
             document.body.removeChild(link);
             setMergedFile(null);
-        }
-        else if (!loading) {
+        } else if (!loading) {
             setSuccess(false);
             setLoading(true);
-            payload.files = [...pdfFiles]
-            axios.post("http://localhost:8000/mergefiles", payload)
-                .then(response => {
-                    console.log(response);
-                    setMergedFile(response.data?.merged_file);
-                    setTimeout(() => {
-                        setSuccess(true);
-                        setLoading(false);
-                    },3000);
-                })
-                .catch(err => {
-                    console.log(err.response);
-                    setErrorMsg(err.response.data.message);
-                    setErrorStatus(err.response.status);
-                    setTimeout(() => {
-                        setSuccess(false);
-                        setLoading(false);
-                        handleClickOpenErrorDialog();
-                    },1000);
 
-                });
+            await uploadFiles();
+            config.url = `https://ct4s9w7wu0.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}.json`;
+            config.headers["Content-Type"] = 'application/json';
+            const jsonContent = JSON.stringify({session_tag: tag}, null, 2);
+            console.log(jsonContent);
+            const jsonBlob = new Blob([jsonContent]);
+            const jsonFile = new File([jsonBlob], `${tag}.json`,  {type: "application/json"});
+
+            console.log(jsonFile);
+            console.log(jsonFile.type);
+            const fileReader = new FileReader();
+
+            fileReader.onload = async () => {
+                config.data = fileReader.result;
+                try {
+                    const response = await axios.request(config);
+                    console.log(response);
+                    setSuccess(true);
+                    setLoading(false);
+                } catch (error) {
+                    setErrorMsg(error.message);
+                    setErrorStatus(error.code);
+                    setSuccess(false);
+                    setLoading(false);
+                    handleClickOpenErrorDialog();
+                }
+            }
+            fileReader.readAsDataURL(jsonFile);
+            generateTag();
         }
     };
 
@@ -220,9 +274,9 @@ export default function Main() {
                         sx={buttonSx}
                         disabled={loading}
                         onClick={handleButtonClick}
-                        startIcon={ success ? <DownloadIcon/> : download ? <RefreshIcon/> : <MergeIcon/>}
+                        startIcon={ success ? <DownloadIcon/> : downloaded ? <RefreshIcon/> : <MergeIcon/>}
                     >
-                        {success ? "Download" : download ? "Refresh" : "Merge"}
+                        {success ? "Download" : downloaded ? "Refresh" : "Merge"}
                     </Button>
                     {loading && (
                         <CircularProgress

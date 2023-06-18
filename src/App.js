@@ -20,8 +20,7 @@ function App() {
       <ThemeProvider theme={theme}>
         <Router>
           <Routes>
-            <Route path="/" element={<Main />}/>
-            <Route path="*" element={<div>not found</div>}/>
+            <Route path="*" element={<Main />}/>
           </Routes>
         </Router>
       </ThemeProvider>
