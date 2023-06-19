@@ -44,7 +44,6 @@ export default function Main(blob) {
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
-    const [mergedFile, setMergedFile] = useState(null);
     const [tag, setTag] = useState(null);
 
     const buttonSx = {
@@ -114,12 +113,19 @@ export default function Main(blob) {
             const randomIndex = Math.floor(Math.random() * charset.length);
             newTag += charset[randomIndex];
         }
-        console.log(newTag)
+        console.log(newTag);
         setTag(newTag);
     };
 
 
     const handleFileUpload = (pdfFile) => {
+
+        const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+        if (pdfFile.size > maxSize) {
+            showAlert("File size exceeds the limit of 5MB");
+            return;
+        }
+
         const fileReader = new FileReader();
 
         fileReader.onload = () => {
@@ -139,6 +145,7 @@ export default function Main(blob) {
                             name: pdfFile.name,
                             type: pdfFile.type,
                             document: dataUrl,
+                            file: pdfFile
                         },
                     ];
             });
@@ -158,18 +165,13 @@ export default function Main(blob) {
 
 
     const uploadFiles = async () => {
-        config.headers.tag = `session_tag=${tag}`;
         for (const pdfFile of pdfFiles) {
             const index = pdfFiles.indexOf(pdfFile);
-            config.url = `https://ct4s9w7wu0.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}${index}.${pdfFile.type.split("/")[1]}`;
+            config.url = `https://pynikv8l73.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}${index}.${pdfFile.type.split("/")[1]}`;
             config.headers["Content-Type"] = `${pdfFile.type}`;
-            config.data = pdfFile.document;
-            console.log(config, pdfFile.type);
+            config.data = pdfFile.file;
             try {
-                const response = await axios.request(config);
-                console.log(response);
-                setSuccess(true);
-                setLoading(false);
+               await axios.request(config);
             } catch (error) {
                 setErrorMsg(error.message);
                 setErrorStatus(error.code);
@@ -180,7 +182,7 @@ export default function Main(blob) {
         }
     }
 
-    const handleButtonClick = async blob => {
+    const handleButtonClick = async () => {
 
         if (downloaded) {
             setDownloaded(false);
@@ -188,49 +190,62 @@ export default function Main(blob) {
         } else if (success && !downloaded) {
             setDownloaded(true);
             setSuccess(false);
-            // Download the merged_file as a PDF file
-            const link = document.createElement('a');
-            link.href = `data:application/pdf;base64,${mergedFile}`;
-            link.download = 'merged_file.pdf';
-            document.body.appendChild(link);
-            link.click();
-            console.log(link);
-            document.body.removeChild(link);
-            setMergedFile(null);
+            try {
+                const response = await axios(`https://pynikv8l73.execute-api.eu-west-1.amazonaws.com/dev/merged-pdf?tag=${tag}`, {headers: {
+                        'X-Api-Key': process.env.REACT_APP_SECRET_KEY
+                    }});
+                const data = response?.data?.body;
+                const presignURL = JSON.parse(data).presigned_url;
+                const link = document.createElement('a');
+                link.href = presignURL;
+                link.target = "_blank";
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+            } catch (error) {
+                setErrorMsg(error.message);
+                setErrorStatus(error.code);
+                setSuccess(false);
+                setLoading(false);
+                handleClickOpenErrorDialog();
+            }
+            generateTag();
         } else if (!loading) {
             setSuccess(false);
             setLoading(true);
 
-            await uploadFiles();
-            config.url = `https://ct4s9w7wu0.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}.json`;
-            config.headers["Content-Type"] = 'application/json';
-            const jsonContent = JSON.stringify({session_tag: tag}, null, 2);
-            console.log(jsonContent);
-            const jsonBlob = new Blob([jsonContent]);
-            const jsonFile = new File([jsonBlob], `${tag}.json`,  {type: "application/json"});
-
-            console.log(jsonFile);
-            console.log(jsonFile.type);
-            const fileReader = new FileReader();
-
-            fileReader.onload = async () => {
-                config.data = fileReader.result;
-                try {
-                    const response = await axios.request(config);
-                    console.log(response);
-                    setSuccess(true);
-                    setLoading(false);
-                } catch (error) {
-                    setErrorMsg(error.message);
-                    setErrorStatus(error.code);
+            if(pdfFiles.length < 2) {
+                setTimeout(() => {
+                    showAlert("You need to select 2 files or more.");
                     setSuccess(false);
                     setLoading(false);
-                    handleClickOpenErrorDialog();
-                }
+                }, 400);
+                return;
             }
-            fileReader.readAsDataURL(jsonFile);
-            generateTag();
+            config.headers.tag = `session_tag=${tag}`;
+            await uploadFiles();
+
+            config.url = `https://pynikv8l73.execute-api.eu-west-1.amazonaws.com/dev/merge-wizard-pdf-preprocess-files/${tag}.csv`;
+            config.headers["Content-Type"] = 'text/csv';
+            const csvContent = `session_tag\n${tag}`;
+            const csvBlob = new Blob([csvContent]);
+            config.data = new File([csvBlob], `${tag}.csv`, {type: "text/csv"});
+            try {
+                await axios.request(config);
+                setSuccess(true);
+                setLoading(false);
+            } catch (error) {
+                setErrorMsg(error.message);
+                setErrorStatus(error.code);
+                setSuccess(false);
+                setLoading(false);
+                handleClickOpenErrorDialog();
+            }
+
         }
+
+
     };
 
 
