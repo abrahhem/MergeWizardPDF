@@ -32,7 +32,7 @@ const Transition = forwardRef(function Transition(props, ref) {
 
 
 
-export default function Main(blob) {
+export default function Main() {
 
     const [errorDialog, setErrorDialog] = useState(false);
     const [errorStatus, setErrorStatus] = useState(null);
@@ -45,6 +45,8 @@ export default function Main(blob) {
     const [success, setSuccess] = useState(false);
     const [downloaded, setDownloaded] = useState(false);
     const [tag, setTag] = useState(null);
+
+
 
     const buttonSx = {
         ...(success && {
@@ -120,9 +122,9 @@ export default function Main(blob) {
 
     const handleFileUpload = (pdfFile) => {
 
-        const maxSize = 5 * 1024 * 1024; // 5 MB in bytes
+        const maxSize = 10 * 1024 * 1024; // 5 MB in bytes
         if (pdfFile.size > maxSize) {
-            showAlert("File size exceeds the limit of 5MB");
+            showAlert("File size exceeds the limit of 10MB");
             return;
         }
 
